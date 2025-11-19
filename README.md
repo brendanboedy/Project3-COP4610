@@ -3,38 +3,38 @@
 [Description]
 
 ## Group Members
-- **John Doe**: jd19@fsu.edu
-- **Jane Smith**: js19@fsu.edu
-- **Alex Brown**: ab19@fsu.edu
+- **Brendan Boedy**: bsb23a@fsu.edu
+- **Alexander Schneier**: js19@fsu.edu
+- **Carson Cary**: ab19@fsu.edu
 ## Division of Labor
 
 ### Part 1: Mounting the Image
 - **Responsibilities**: [Description]
-- **Assigned to**: John Doe
+- **Assigned to**: Brendan Boedy, Alexander Schneier
 
 ### Part 2: Navigation
 - **Responsibilities**: [Description]
-- **Assigned to**: Jane Smith
+- **Assigned to**: Alexander Schneier, Carson Cary
 
 ### Part 3: Create
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown
+- **Assigned to**: Carson Cary, Brendan Boedy
 
 ### Part 4: Read
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: Brendan Boedy, Alexander Schneier
 
 ### Part 5: Update
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: Alexander Schneier, Carson Cary
 
 ### Part 6: Delete
 - **Responsibilities**: [Description]
-- **Assigned to**: Jane Smith
+- **Assigned to**: Carson Cary, Brendan Boedy
 
 ### Extra Credit
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown
+- **Assigned to**: Brendan Boedy, Alexander Schneier
 
 ## File Listing
 ```

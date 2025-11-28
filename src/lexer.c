@@ -2,29 +2,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "commands.h"
 
-int main()
-{
-	while (1) {
-		printf("> ");
 
-		/* input contains the whole command
-		 * tokens contains substrings from input split by spaces
-		 */
+#include "lexer.h"
+#include "commands.h"
+#include "part1.h"     // <-- add this include
 
-		char *input = get_input();
-		printf("whole input: %s\n", input);
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <FAT32 image>\n", argv[0]);
+        return 1;
+    }
 
-		tokenlist *tokens = get_tokens(input);
-		for (int i = 0; i < tokens->size; i++) {
-			printf("token %d: (%s)\n", i, tokens->items[i]);
-		}
+    if (mount_image(argv[1]) != 0) {
+        fprintf(stderr, "Failed to mount image: %s\n", argv[1]);
+        return 1;
+    }
 
-		free(input);
-		free_tokens(tokens);
-	}
+    printf("Image mounted successfully.\n");
 
-	return 0;
+    while (1) {
+        printf("> ");
+
+        char *input = get_input();
+        printf("whole input: %s\n", input);
+
+        tokenlist *tokens = get_tokens(input);
+        for (int i = 0; i < tokens->size; i++) {
+            printf("token %d: (%s)\n", i, tokens->items[i]);
+        }
+
+        handle_command(tokens);
+
+        free(input);
+        free_tokens(tokens);
+    }
+
+    return 0;
 }
 
 char *get_input(void) {

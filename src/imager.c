@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 short_dir_entry* find_entry(fat_state* state, char* target) {
     FAT32_Info* config = &state->img_config;
@@ -37,7 +38,7 @@ short_dir_entry* find_entry(fat_state* state, char* target) {
 
                 char fname_buff[13];
                 translate_filename(entry->filename, fname_buff);
-                if (strcmp(fname_buff, target) == 0) {
+                if (strcasecmp(fname_buff, target) == 0) {
                     short_dir_entry* result = malloc(sizeof(short_dir_entry));
                     memcpy(result, entry, sizeof(short_dir_entry));
                     free(buffer);

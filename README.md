@@ -89,7 +89,7 @@ This will run the program ...
 
 ## Bugs
 
-- **Bug 1**: This is bug 1.
+- **Bug 1**: calling creat with an existing file name was allowed. Fixed using strcasecmp.
 - **Bug 2**: This is bug 2.
 - **Bug 3**: This is bug 3.
 

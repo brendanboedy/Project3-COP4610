@@ -130,11 +130,12 @@ uint32_t get_next_cluster(uint32_t current_cluster, fat_state* state) {
     uint32_t next_cluster_value = 0;
     fseek(state->image, pos, SEEK_SET);
     if (fread(&next_cluster_value, sizeof(uint32_t), 1, state->image) != 1) {
-        printf("Error: Failed to read FAT entry for cluster %d\n", current_cluster);
-        return 0x0FFFFFFF;  // Return End-of-Chain marker on failure
+        printf("Reading caused huge explosion at get_next_cluster %d\n", current_cluster);
+        return END_CLUSTER_CHAIN;
     }
 
-    return next_cluster_value & TOP_FAT_MASK;
+    // This just removes the last 4 bits making the returned value a max of 28 bits
+    return next_cluster_value & END_CLUSTER_CHAIN;
 }
 
 int is_final_entry(const short_dir_entry* entry) {

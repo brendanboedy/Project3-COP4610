@@ -23,7 +23,6 @@ typedef struct {
 
 } FAT32_Info;
 
-// Flag for first byte of filename -- if filename[0] & END_OF_DIR => end of dir
 #define END_OF_ENTRIES 0x00
 #define DELETED_ENTRY 0x05
 
@@ -37,7 +36,9 @@ typedef struct {
 #define ATTR_LONG_DIR_NAME 0x0F
 
 // For masking the FAT cluster position, and determine end cluster chain
-#define TOP_FAT_MASK 0x0FFFFFFF
+#define END_CLUSTER_CHAIN 0x0FFFFFFF
+
+// If current_cluster >= END_CLUSTER then we are finished with cluster-chain
 #define END_CLUSTER_MIN 0x0FFFFFF8
 
 typedef struct {

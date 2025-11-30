@@ -9,87 +9,6 @@
 
 #include "imager.h"
 
-/* --------- public Part 3 entry points --------- */
-void make_dir(fat_state *state, const char *dirname) {
-    if (dirname == NULL || dirname[0] == '\0') {
-        printf("mkdir: missing operand\n");
-        return;
-    }
-
-    if (strcmp(dirname, ".") == 0 || strcmp(dirname, "..") == 0) {
-        printf("mkdir: cannot create special directory %s\n", dirname);
-        return;
-    }
-
-    //Check if an entry already exists with this name
-    short_dir_entry *existing = find_entry(state, (char *)dirname);
-    if (existing != NULL) {
-        free(existing);
-        printf("mkdir: cannot create '%s': entry already exists\n", dirname);
-        return;
-    }
-
-    //Allocate a new cluster for the directory itself
-    uint32_t new_cluster = 0;
-    if (allocate_free_cluster(state, &new_cluster) != 0) {
-        printf("mkdir: no free clusters available\n");
-        return;
-    }
-
-    //Clear the cluster and initialize its . and .. entries
-    clear_cluster(state, new_cluster);
-    init_dot_entries(state, new_cluster, state->working_dir_start_cluster);
-
-    //Prepare the short directory entry that will live in the parent directory
-    short_dir_entry dir_entry;
-    memset(&dir_entry, 0, sizeof(short_dir_entry));
-
-    build_short_name(dirname, dir_entry.filename);
-    dir_entry.attributes = ATTR_DIRECTORY;
-    dir_entry.first_cluster_hi = (uint16_t)((new_cluster >> 16) & 0xFFFF);
-    dir_entry.first_cluter_low = (uint16_t)(new_cluster & 0xFFFF);
-    dir_entry.file_size = 0;
-
-    if (append_entry_to_cwd(state, &dir_entry) != 0) {
-        printf("mkdir: failed to insert directory entry for '%s'\n", dirname);
-        return;
-    }
-}
-
-void create_ef(fat_state *state, const char *filename) {
-    if (filename == NULL || filename[0] == '\0') {
-        printf("creat: missing operand\n");
-        return;
-    }
-
-    if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0) {
-        printf("creat: invalid file name '%s'\n", filename);
-        return;
-    }
-
-    //Check if an entry already exists with this name
-    short_dir_entry *existing = find_entry(state, (char *)filename);
-    if (existing != NULL) {
-        free(existing);
-        printf("creat: cannot create '%s': entry already exists\n", filename);
-        return;
-    }
-
-    short_dir_entry file_entry;
-    memset(&file_entry, 0, sizeof(short_dir_entry));
-
-    build_short_name(filename, file_entry.filename);
-    file_entry.attributes = ATTR_ARCHIVE;
-    file_entry.first_cluster_hi = 0;
-    file_entry.first_cluter_low = 0;
-    file_entry.file_size = 0;
-
-    if (append_entry_to_cwd(state, &file_entry) != 0) {
-        printf("creat: failed to insert file entry for '%s'\n", filename);
-        return;
-    }
-}
-
 /* --------- small FAT / directory helpers (local to this file) --------- */
 //Build a short name
 static void build_short_name(const char *input, uint8_t dest[11]) {
@@ -291,4 +210,85 @@ static void init_dot_entries(fat_state *state, uint32_t new_dir_cluster, uint32_
     long third_pos = base_pos + 2 * (long)sizeof(short_dir_entry);
     fseek(state->image, third_pos, SEEK_SET);
     fwrite(&end_entry, sizeof(short_dir_entry), 1, state->image);
+}
+
+/* --------- public Part 3 entry points --------- */
+void make_dir(fat_state *state, const char *dirname) {
+    if (dirname == NULL || dirname[0] == '\0') {
+        printf("mkdir: missing operand\n");
+        return;
+    }
+
+    if (strcmp(dirname, ".") == 0 || strcmp(dirname, "..") == 0) {
+        printf("mkdir: cannot create special directory %s\n", dirname);
+        return;
+    }
+
+    //Check if an entry already exists with this name
+    short_dir_entry *existing = find_entry(state, (char *)dirname);
+    if (existing != NULL) {
+        free(existing);
+        printf("mkdir: cannot create '%s': entry already exists\n", dirname);
+        return;
+    }
+
+    //Allocate a new cluster for the directory itself
+    uint32_t new_cluster = 0;
+    if (allocate_free_cluster(state, &new_cluster) != 0) {
+        printf("mkdir: no free clusters available\n");
+        return;
+    }
+
+    //Clear the cluster and initialize its . and .. entries
+    clear_cluster(state, new_cluster);
+    init_dot_entries(state, new_cluster, state->working_dir_start_cluster);
+
+    //Prepare the short directory entry that will live in the parent directory
+    short_dir_entry dir_entry;
+    memset(&dir_entry, 0, sizeof(short_dir_entry));
+
+    build_short_name(dirname, dir_entry.filename);
+    dir_entry.attributes = ATTR_DIRECTORY;
+    dir_entry.first_cluster_hi = (uint16_t)((new_cluster >> 16) & 0xFFFF);
+    dir_entry.first_cluter_low = (uint16_t)(new_cluster & 0xFFFF);
+    dir_entry.file_size = 0;
+
+    if (append_entry_to_cwd(state, &dir_entry) != 0) {
+        printf("mkdir: failed to insert directory entry for '%s'\n", dirname);
+        return;
+    }
+}
+
+void create_ef(fat_state *state, const char *filename) {
+    if (filename == NULL || filename[0] == '\0') {
+        printf("creat: missing operand\n");
+        return;
+    }
+
+    if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0) {
+        printf("creat: invalid file name '%s'\n", filename);
+        return;
+    }
+
+    //Check if an entry already exists with this name
+    short_dir_entry *existing = find_entry(state, (char *)filename);
+    if (existing != NULL) {
+        free(existing);
+        printf("creat: cannot create '%s': entry already exists\n", filename);
+        return;
+    }
+
+    short_dir_entry file_entry;
+    memset(&file_entry, 0, sizeof(short_dir_entry));
+
+    build_short_name(filename, file_entry.filename);
+    file_entry.attributes = ATTR_ARCHIVE;
+    file_entry.first_cluster_hi = 0;
+    file_entry.first_cluter_low = 0;
+    file_entry.file_size = 0;
+
+    if (append_entry_to_cwd(state, &file_entry) != 0) {
+        printf("creat: failed to insert file entry for '%s'\n", filename);
+        return;
+    }
 }

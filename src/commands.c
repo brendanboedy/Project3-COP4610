@@ -8,18 +8,36 @@
 #include "imager.h"
 #include "lexer.h"
 #include "navigate.h"
+#include "create.h"
 
 void handle_command(fat_state* state, tokenlist* tokens) {
     if (tokens->size == 0) return;
 
-    if (strcmp(tokens->items[0], "info") == 0) {
+    const char* cmd = tokens->items[0];
+    if (strcmp(cmd, "info") == 0) {
         print_info(&state->img_config);
-    } else if (strcmp(tokens->items[0], "exit") == 0) {
+    } else if (strcmp(cmd, "exit") == 0) {
         exit_program(state->image);
-    } else if (strcmp(tokens->items[0], "cd") == 0) {
-        change_dir(state, tokens->items[1]);
-    } else if (strcmp(tokens->items[0], "ls") == 0) {
+    } else if (strcmp(cmd, "cd") == 0) {
+        if (tokens->size != 2){
+            printf("cd: expected one argument\n");
+        } else {
+            change_dir(state, tokens->items[1]);
+        }
+    } else if (strcmp(cmd, "ls") == 0) {
         list_entries_in_dir(state);
+    } else if (strcmp(cmd, "mkdir") == 0) {
+        if (tokens->size != 2) {
+            printf("Usage: mkdir [DIRNAME]\n");
+        } else {
+            make_directory(state, tokens->items[1]);
+        }
+    } else if (strcmp(cmd, "creat") == 0) {
+        if (tokens->size != 2) {
+            printf("Usage: creat [FILENAME]\n");
+        } else {
+            create_empty_file(state, tokens->items[1]);
+        }
     } else {
         printf("Unknown command: %s\n", tokens->items[0]);
     }

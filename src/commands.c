@@ -30,13 +30,13 @@ void handle_command(fat_state* state, tokenlist* tokens) {
         if (tokens->size != 2) {
             printf("Usage: mkdir [DIRNAME]\n");
         } else {
-            make_directory(state, tokens->items[1]);
+            make_dir(state, tokens->items[1]);
         }
     } else if (strcmp(cmd, "creat") == 0) {
         if (tokens->size != 2) {
             printf("Usage: creat [FILENAME]\n");
         } else {
-            create_empty_file(state, tokens->items[1]);
+            create_ef(state, tokens->items[1]);
         }
     } else {
         printf("Unknown command: %s\n", tokens->items[0]);

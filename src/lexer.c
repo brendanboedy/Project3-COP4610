@@ -2,45 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "commands.h"
-
 
 #include "lexer.h"
-#include "commands.h"
-#include "part1.h"     // <-- add this include
+#include "fatter.h"
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <FAT32 image>\n", argv[0]);
-        return 1;
-    }
 
-    if (mount_image(argv[1]) != 0) {
-        fprintf(stderr, "Failed to mount image: %s\n", argv[1]);
-        return 1;
-    }
-
-    printf("Image mounted successfully.\n");
-
-    while (1) {
-        printf("> ");
-
-        char *input = get_input();
-        printf("whole input: %s\n", input);
-
-        tokenlist *tokens = get_tokens(input);
-        for (int i = 0; i < tokens->size; i++) {
-            printf("token %d: (%s)\n", i, tokens->items[i]);
-        }
-
-        handle_command(tokens);
-
-        free(input);
-        free_tokens(tokens);
-    }
-
-    return 0;
-}
 
 char *get_input(void) {
 	char *buffer = NULL;

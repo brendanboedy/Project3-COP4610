@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+*compile_commands.json
+.cache/
+fat32.img
+bin/*

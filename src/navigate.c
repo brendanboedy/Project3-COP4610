@@ -17,11 +17,14 @@ void change_dir(fat_state* state, char* dest_dir) {
     short_dir_entry* entry = find_entry(state, dest_dir);
 
     if (entry == NULL) {
-        printf("No directory or file %s found", dest_dir);
+        printf("No file or directory %s found", dest_dir);
+        return;
     }
 
     if (!is_dir(entry)) {
         printf("%s is not a directory", dest_dir);
+        free(entry);
+        return;
     }
 
     FAT32_Info* config = &state->img_config;
@@ -59,7 +62,7 @@ void list_entries_in_dir(fat_state* state) {
     const uint32_t MAX_ENTRIES = config->bytes_per_sector / sizeof(short_dir_entry);
 
     uint32_t current_cluster = state->working_dir_start_cluster;
-    uint8_t* buffer = malloc(sizeof(uint32_t) * config->bytes_per_sector);
+    uint8_t* buffer = malloc(sizeof(uint8_t) * config->bytes_per_sector);
 
     int finished_traversal = 0;
 

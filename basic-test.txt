@@ -1,0 +1,28 @@
+open LONGFILE -r
+read LONGFILE 40
+open HELLO -r
+read HELLO 7
+lseek HELLO 3
+lseek LONGFILE 20
+ls
+cd GREEN
+open F100 -r
+open F099 -r
+open F098 -r
+open F097 -r
+open F096 -r
+open F095 -r
+open F094 -r
+open F093 -r
+open F092 -r
+open F091 -r
+open F090 -r
+open F089 -r
+close F094
+read F094 40
+open F094 -r
+read F094 40
+close F089
+lseek F094 30
+read HELLO 4
+

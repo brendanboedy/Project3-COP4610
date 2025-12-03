@@ -40,11 +40,11 @@ void handle_command(fat_state* state, tokenlist* tokens) {
             create_ef(state, tokens->items[1]);
         }
     } else if (strcmp(cmd, "close") == 0) {
-        // if (tokens->size != 2) {
-        //     printf("Usage: close [FILENAME]\n");
-        // } else {
-        //     close_file(tokens->items[1], state->open_files);
-        // }
+        if (tokens->size != 2) {
+            printf("Usage: close [FILENAME]\n");
+        } else {
+            close_file(tokens->items[1], state->openned_files);
+        }
     } else if (strcmp(cmd, "open") == 0) {
         if (tokens->size != 3) {
             printf("Usage: open [FILENAME] [FLAGS]\n");

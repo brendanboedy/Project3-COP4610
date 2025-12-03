@@ -58,3 +58,4 @@ dkms.conf
 .cache/
 fat32.img
 bin/*
+bin/

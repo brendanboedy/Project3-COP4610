@@ -25,19 +25,24 @@ fat_file* open_file(char* target, char* flags, fat_state* state) {
     }
     if (strcmp(flags, "-r") == 0) {
         read = 1;
-    } else if (strcmp(flags, "-w")) {
+    } else if (strcmp(flags, "-w") == 0) {
         write = 1;
-    } else if (strcmp(flags, "-rw")) {
+    } else if (strcmp(flags, "-rw") == 0) {
         read = 1;
         write = 1;
-    } else if (strcmp(flags, "-wr")) {
+    } else if (strcmp(flags, "-wr") == 0) {
         read = 1;
         write = 1;
     } else {
         printf("Invalid flags, must be one of '-r', '-w', '-rw', '-wr'.");
     }
 
-    char* full_path = strdup(state->working_dir);
+    char* full_path = malloc(strlen(state->working_dir) + strlen(target) + 1);
+    if (full_path == NULL) {
+        printf("Memory allocation failed");
+        return NULL;
+    }
+    strcpy(full_path, state->working_dir);
     strcat(full_path, target);
 
     fat_file* f = malloc(sizeof(fat_file));
@@ -88,10 +93,6 @@ void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* 
     uint32_t start_byte = offset % state->img_config.bytes_per_sector;
     uint32_t remaining_sectors =
         conf->sectors_per_cluster - (sector_idx % conf->sectors_per_cluster);
-    printf(
-        "start_byte = %d, bytes_remaining = %d, remaining_sectors = %d, cluster_idx = %d, "
-        "sector_idx = %d\n",
-        start_byte, bytes_remaining, remaining_sectors, cluster_idx, sector_idx);
 
     uint8_t* buffer = malloc(sizeof(uint32_t) * conf->bytes_per_sector);
     while (bytes_remaining > 0 && cluster_idx < END_CLUSTER_MIN && cluster_idx != 0) {
@@ -117,7 +118,8 @@ void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* 
 }
 
 void list_open_files(file_lst* files) {
-    printf("index\tfilename\tmode\toffset\tpath\n");
+    printf("%-7s %-20s %-6s %-8s %s\n", "index", "filename", "mode", "offset", "path");
+    uint32_t printed_idx = 0;
     for (int i = 0; i < files->file_idx; ++i) {
         fat_file* f = &files->files[i];
         if (!f->open) {
@@ -131,15 +133,50 @@ void list_open_files(file_lst* files) {
         if (f->write) {
             strcat(mode, "w");
         }
+        printf("%-7d %-20s %-6s %-8d %s\n", printed_idx, f->filename, mode, f->offset,
+               f->full_path);
 
-        printf("%d\t%s\t\t%s\t%d\t%s\n", i, f->filename, mode, f->offset, f->full_path);
+        printed_idx += 1;
     }
+}
+void close_file(char* filename, file_lst* open_files) {
+    fat_file* files = open_files->files;
+    fat_file* file = NULL;
+    for (int i = 0; i < open_files->file_idx; ++i) {
+        if (files[i].filename == NULL) {
+            continue;
+        }
+        if (strcmp(filename, files[i].filename) != 0) {
+            continue;
+        }
+        if (!files[i].open) {
+            printf("File %s is already closed.", filename);
+            return;
+        }
+
+        file = &files[i];
+        free(file->filename);
+        free(file->full_path);
+        free(file->entry);
+        file->filename = NULL;
+        file->full_path = NULL;
+
+        file->open = 0;
+        file->entry = NULL;
+
+        return;
+    }
+
+    printf("File %s not found in open files", filename);
 }
 
 void lseek(char* filename, uint32_t offset, file_lst* file_lst) {
     fat_file* files = file_lst->files;
     fat_file* target_file = NULL;
     for (int i = 0; i < file_lst->file_idx; ++i) {
+        if (files[i].filename == NULL) {
+            continue;
+        }
         if (strcmp(filename, files[i].filename) != 0) {
             continue;
         }
@@ -202,12 +239,13 @@ void add_file_to_lst(fat_file* file, file_lst* files) {
 
 int is_file_open(file_lst* list, char* filename) {
     for (int i = 0; i < list->file_idx; ++i) {
+        if (!list->files[i].open) {
+            continue;
+        }
         if (strcmp(list->files[i].filename, filename) != 0) {
             continue;
         }
-        if (list->files[i].open) {
-            return 1;
-        }
+        return 1;
     }
     return 0;
 }

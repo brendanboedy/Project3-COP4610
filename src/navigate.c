@@ -1,3 +1,4 @@
+
 #include "navigate.h"
 
 #include <stdio.h>
@@ -64,8 +65,7 @@ void list_entries_in_dir(fat_state* state) {
 
     while (current_cluster < END_CLUSTER_MIN && current_cluster != 0) {
         uint32_t start_sector_idx = first_sector_of_cluster(current_cluster, config);
-        for (uint32_t i = 0; i < config->sectors_per_cluster && !finished_traversal;
-             ++i) {
+        for (uint32_t i = 0; i < config->sectors_per_cluster && !finished_traversal; ++i) {
             uint32_t sector_idx = start_sector_idx + i;
             read_sector(buffer, sector_idx, state);
 

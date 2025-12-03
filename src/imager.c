@@ -10,6 +10,8 @@
 #include <string.h>
 #include <strings.h>
 
+#include "read.h"
+
 short_dir_entry* find_entry(fat_state* state, char* target) {
     FAT32_Info* config = &state->img_config;
     const uint32_t MAX_ENTRIES = config->bytes_per_sector / sizeof(short_dir_entry);
@@ -92,12 +94,13 @@ fat_state* mount_image(const char* filename) {
     rewind(image);
 
     img_config->first_fat_sector = img_config->reserved_sector_count;
-    img_config->first_data_sector = img_config->reserved_sector_count +
-                                    (img_config->num_fats * img_config->fat_size_32);
+    img_config->first_data_sector =
+        img_config->reserved_sector_count + (img_config->num_fats * img_config->fat_size_32);
 
     state->working_dir = malloc(1024 * sizeof(char));
     strcpy(state->working_dir, "/");
     state->working_dir_start_cluster = img_config->root_cluster;
+    state->openned_files = create_file_lst();
 
     return state;
 }
@@ -109,6 +112,31 @@ uint32_t first_sector_of_cluster(uint32_t cluster_idx, const FAT32_Info* info) {
     return ((cluster_idx - 2) * info->sectors_per_cluster) + info->first_data_sector;
 }
 
+uint32_t sector_from_entry_offset(uint32_t cluster_idx, uint32_t offset, fat_state* state) {
+    FAT32_Info* conf = &state->img_config;
+
+    uint32_t sector_offset = offset / conf->bytes_per_sector;
+    uint32_t cluster_offset = sector_offset / conf->sectors_per_cluster;
+
+    sector_offset = sector_offset - (cluster_offset * conf->sectors_per_cluster);
+
+    uint32_t first_sector = first_sector_of_cluster(cluster_idx, conf);
+    return first_sector + sector_offset;
+}
+
+uint32_t cluster_from_entry_offset(short_dir_entry* entry, uint32_t offset, fat_state* state) {
+    FAT32_Info* conf = &state->img_config;
+    uint32_t cluster = first_cluster_of_entry(entry);
+
+    uint32_t sector_offset = offset / conf->bytes_per_sector;
+    uint32_t cluster_offset = sector_offset / conf->sectors_per_cluster;
+
+    for (int i = 0; i < cluster_offset; ++i) {
+        cluster = get_next_cluster(cluster, state);
+    }
+
+    return cluster;
+}
 long long sector_byte_offset(uint32_t sector_idx, FAT32_Info* info) {
     return (long long)info->bytes_per_sector * sector_idx;
 }
@@ -139,13 +167,9 @@ uint32_t get_next_cluster(uint32_t current_cluster, fat_state* state) {
     return next_cluster_value & END_CLUSTER_CHAIN;
 }
 
-int is_final_entry(const short_dir_entry* entry) {
-    return entry->filename[0] == END_OF_ENTRIES;
-}
+int is_final_entry(const short_dir_entry* entry) { return entry->filename[0] == END_OF_ENTRIES; }
 
-int is_deleted_entry(const short_dir_entry* entry) {
-    return entry->filename[0] == DELETED_ENTRY;
-}
+int is_deleted_entry(const short_dir_entry* entry) { return entry->filename[0] == DELETED_ENTRY; }
 
 int is_long_filename(const short_dir_entry* entry) {
     return entry->attributes == ATTR_LONG_DIR_NAME;

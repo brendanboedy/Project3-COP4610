@@ -51,13 +51,37 @@ typedef struct {
     uint32_t file_size;         // 28-32
 } __attribute__((packed)) short_dir_entry;
 
+/**
+ * Make sure you check if open == 1 before doing somethign with the file
+*/
+typedef struct {
+    // if read == 1 then read if write == 1 then write perms
+    int read;
+    int write;
+    int open;  // set to 0 if file closed.
+
+    uint32_t offset;  // in bytes
+    char* full_path;
+    char* filename;  // NOT fat filename but human translated
+
+    short_dir_entry* entry;
+} fat_file;
+
+typedef struct {
+    fat_file* files;
+
+    int size;
+    int file_idx;
+} file_lst;
+
 typedef struct {
     FAT32_Info img_config;
     FILE* image;
+    file_lst* openned_files;
 
     char* working_dir;
-    // basically the FAT-interpretable version of working dir:
     uint32_t working_dir_start_cluster;
+
 } fat_state;
 
 fat_state* mount_image(const char* filename);
@@ -71,11 +95,18 @@ short_dir_entry* find_entry(fat_state* state, char* target);
 
 uint32_t first_cluster_of_entry(short_dir_entry* dir_entry);
 uint32_t first_sector_of_cluster(uint32_t cluster_idx, const FAT32_Info* info);
+
+// Given a byte offset, returns the cluster where the byte offset resides
+uint32_t cluster_from_entry_offset(short_dir_entry* entry, uint32_t offset, fat_state* state);
+
+// Given the byte offset and cluster_idx (found from cluster_from_entry_offset) returns the sector where offset resides
+uint32_t sector_from_entry_offset(uint32_t cluster_idx, uint32_t offset, fat_state* state);
 long long sector_byte_offset(uint32_t sector_idx, FAT32_Info* info);
 
 void free_state(fat_state* state);
 void read_sector(uint8_t* buffer, uint32_t sector_idx, fat_state* state);
 uint32_t get_next_cluster(uint32_t current_cluster, fat_state* state);
+uint32_t get_next_sector(uint32_t current_cluster, uint32_t current_sector, fat_state* state);
 int is_final_entry(const short_dir_entry* entry);
 int is_deleted_entry(const short_dir_entry* entry);
 int is_long_filename(const short_dir_entry* entry);

@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "create.h"
 #include "imager.h"
 #include "lexer.h"
 #include "navigate.h"
-#include "create.h"
+#include "read.h"
 
 void handle_command(fat_state* state, tokenlist* tokens) {
     if (tokens->size == 0) return;
@@ -19,7 +20,7 @@ void handle_command(fat_state* state, tokenlist* tokens) {
     } else if (strcmp(cmd, "exit") == 0) {
         exit_program(state->image);
     } else if (strcmp(cmd, "cd") == 0) {
-        if (tokens->size != 2){
+        if (tokens->size != 2) {
             printf("cd: expected one argument\n");
         } else {
             change_dir(state, tokens->items[1]);
@@ -38,15 +39,60 @@ void handle_command(fat_state* state, tokenlist* tokens) {
         } else {
             create_ef(state, tokens->items[1]);
         }
-    } else {
+    } else if (strcmp(cmd, "close") == 0) {
+        // if (tokens->size != 2) {
+        //     printf("Usage: close [FILENAME]\n");
+        // } else {
+        //     close_file(tokens->items[1], state->open_files);
+        // }
+    } else if (strcmp(cmd, "open") == 0) {
+        if (tokens->size != 3) {
+            printf("Usage: open [FILENAME] [FLAGS]\n");
+            return;
+        }
+        char* fname = tokens->items[1];
+        char* flags = tokens->items[2];
+
+        if (is_file_open(state->openned_files, fname)) {
+            printf("Error: File '%s' is already open.\n", fname);
+            return;
+        }
+
+        fat_file* f = open_file(fname, flags, state);
+        if (f == NULL) {
+            return;
+        }
+
+        add_file_to_lst(f, state->openned_files);
+    } else if (strcmp(cmd, "lsof") == 0) {
+        list_open_files(state->openned_files);
+    } else if (strcmp(cmd, "lseek") == 0) {
+        if (tokens->size != 3) {
+            printf("Usage: lseek [FILENAME] [OFFSET]\n");
+        } else {
+            char* fname = tokens->items[1];
+            int offset = atoi(tokens->items[2]);  // Convert string to int
+            lseek(fname, offset, state->openned_files);
+        }
+    } else if (strcmp(cmd, "read") == 0) {
+        if (tokens->size != 3) {
+            printf("Usage: read [FILENAME] [SIZE]\n");
+        } else {
+            char* fname = tokens->items[1];
+            int size = atoi(tokens->items[2]);  // Convert string to int
+            read_n_bytes(fname, size, state->openned_files, state);
+        }
+    }
+
+    else {
         printf("Unknown command: %s\n", tokens->items[0]);
     }
 }
 
 void print_info(const FAT32_Info* img_config) {
     uint32_t total_clusters =
-        (img_config->total_sectors - (img_config->reserved_sector_count +
-                                      (img_config->num_fats * img_config->fat_size_32))) /
+        (img_config->total_sectors -
+         (img_config->reserved_sector_count + (img_config->num_fats * img_config->fat_size_32))) /
         img_config->sectors_per_cluster;
 
     printf("Root cluster (in cluster #): %u\n", img_config->root_cluster);

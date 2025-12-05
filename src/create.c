@@ -35,7 +35,7 @@ static void set_fat_entry(fat_state *state, uint32_t cluster, uint32_t value) {
 
 //Search for free FAT entry 
 //Marks  chosen cluster as EOC and returns its index via out_cluster.
-static int allocate_free_cluster(fat_state *state, uint32_t *out_cluster) {
+int allocate_free_cluster(fat_state *state, uint32_t *out_cluster) {
     FAT32_Info *cfg = &state->img_config;
 
     //# of 32-bit entries in one FAT
@@ -65,7 +65,7 @@ static int allocate_free_cluster(fat_state *state, uint32_t *out_cluster) {
 }
 
 //Zero-out every byte in the given cluster
-static void clear_cluster(fat_state *state, uint32_t cluster) {
+void clear_cluster(fat_state *state, uint32_t cluster) {
     FAT32_Info *cfg = &state->img_config;
     uint32_t first_sector = first_sector_of_cluster(cluster, cfg);
     uint32_t sectors_per_cluster = cfg->sectors_per_cluster;

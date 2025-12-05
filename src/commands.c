@@ -10,6 +10,7 @@
 #include "lexer.h"
 #include "navigate.h"
 #include "read.h"
+#include "update.h"
 
 void handle_command(fat_state* state, tokenlist* tokens) {
     if (tokens->size == 0) return;
@@ -83,6 +84,39 @@ void handle_command(fat_state* state, tokenlist* tokens) {
             read_n_bytes(fname, size, state->openned_files, state);
         }
     }
+
+    else if (strcmp(cmd, "write") == 0) {
+        if (tokens->size < 3) {
+            printf("Usage: write [FILENAME] \"STRING\"\n");
+        }
+        else {
+            char *fname = tokens->items[1];
+            char *start = strchr(tokens->items[2], '\"');
+            char *end = strrchr(tokens->items[tokens->size - 1], '\"');
+            if (start && end && end > start) {
+                size_t len = end - start - 1;
+                char *text = malloc(len + 1);
+                strncpy(text, start + 1, len);
+                text[len] = '\0';
+                write_file(fname, text, state->openned_files, state);
+                free(text);
+            } 
+            else {
+                printf("write: string must be in quotes\n");
+            }
+        }
+    }
+
+    else if (strcmp(cmd, "mv") == 0) {
+        if (tokens->size != 3) {
+            printf("Usage: mv [OLDNAME] [NEWNAME]\n");
+        } else {
+            move_entry(state, tokens->items[1], tokens->items[2]);
+        }
+    }
+
+
+
 
     else {
         printf("Unknown command: %s\n", tokens->items[0]);

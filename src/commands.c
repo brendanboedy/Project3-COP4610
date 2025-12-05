@@ -11,6 +11,7 @@
 #include "navigate.h"
 #include "read.h"
 #include "update.h"
+#include "delete.h"
 
 void handle_command(fat_state* state, tokenlist* tokens) {
     if (tokens->size == 0) return;
@@ -83,9 +84,7 @@ void handle_command(fat_state* state, tokenlist* tokens) {
             int size = atoi(tokens->items[2]);  // Convert string to int
             read_n_bytes(fname, size, state->openned_files, state);
         }
-    }
-
-    else if (strcmp(cmd, "write") == 0) {
+    }else if (strcmp(cmd, "write") == 0) {
         if (tokens->size < 3) {
             printf("Usage: write [FILENAME] \"STRING\"\n");
         }
@@ -105,20 +104,25 @@ void handle_command(fat_state* state, tokenlist* tokens) {
                 printf("write: string must be in quotes\n");
             }
         }
-    }
-
-    else if (strcmp(cmd, "mv") == 0) {
+    }else if (strcmp(cmd, "mv") == 0) {
         if (tokens->size != 3) {
             printf("Usage: mv [OLDNAME] [NEWNAME]\n");
         } else {
             move_entry(state, tokens->items[1], tokens->items[2]);
         }
-    }
-
-
-
-
-    else {
+    }else if (strcmp(cmd, "rm") == 0) {
+        if (tokens->size != 2) {
+            printf("Usage: rm [FILENAME]\n");
+        } else {
+            remove_file(state, tokens->items[1]);
+        }
+    }else if (strcmp(cmd, "rmdir") == 0) {
+        if (tokens->size != 2) {
+            printf("Usage: rmdir [DIRNAME]\n");
+        } else {
+            remove_dir(state, tokens->items[1]);
+        }
+    }else {
         printf("Unknown command: %s\n", tokens->items[0]);
     }
 }

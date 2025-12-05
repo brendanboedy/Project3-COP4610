@@ -212,7 +212,7 @@ void remove_file(fat_state *state, const char *filename) {
         free_cluster_chain(state, first_cluster);
     }
     // Remove entry from current directory
-    if (mark_entry_deleted_in_cwd(state, filename) != 0) {
+    if (mark_entry_deleted(state, filename) != 0) {
         printf("rm: internal error deleting directory entry for '%s'\n", filename);
     }
     free(entry);

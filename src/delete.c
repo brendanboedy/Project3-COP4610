@@ -160,7 +160,7 @@ static int has_open_files_in_dir(fat_state *state, const char *dirname) {
 }
 
 // -------------------- main methods --------------------
-//rm filename
+//remove file
 void remove_file(fat_state *state, const char *filename) {
     if (!filename || filename[0] == '\0') {
         printf("rm: missing operand\n");
@@ -170,10 +170,32 @@ void remove_file(fat_state *state, const char *filename) {
         printf("rm: cannot remove special entry '%s'\n", filename);
         return;
     }
-    if (is_file_open(state->openned_files, (char *)filename)) {
-        printf("rm: cannot remove '%s': file is open\n", filename);
+    //Build the absolute path
+    char *full_path = malloc(strlen(state->working_dir) + strlen(filename) + 1);
+    if (!full_path) {
+        printf("rm: memory allocation failed\n");
         return;
     }
+    strcpy(full_path, state->working_dir);
+    strcat(full_path, filename);
+
+    file_lst *open_files = state->openned_files;
+    if (open_files) {
+        for (int i = 0; i < open_files->file_idx; ++i) {
+            fat_file *f = &open_files->files[i];
+            if (!f->open || !f->full_path) {
+                continue;
+            }
+            //Compare full path strings
+            if (strcmp(f->full_path, full_path) == 0) {
+                printf("rm: cannot remove '%s': file is open\n", filename);
+                free(full_path);
+                return;
+            }
+        }
+    }
+    free(full_path);
+
     short_dir_entry *entry = find_entry(state, (char *)filename);
     if (!entry) {
         printf("rm: cannot remove '%s': No such file\n", filename);
@@ -189,8 +211,8 @@ void remove_file(fat_state *state, const char *filename) {
     if (first_cluster != 0) {
         free_cluster_chain(state, first_cluster);
     }
-    //Remove entry from current directory
-    if (mark_entry_deleted(state, filename) != 0) {
+    // Remove entry from current directory
+    if (mark_entry_deleted_in_cwd(state, filename) != 0) {
         printf("rm: internal error deleting directory entry for '%s'\n", filename);
     }
     free(entry);

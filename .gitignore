@@ -59,3 +59,5 @@ dkms.conf
 fat32.img
 bin/*
 bin/
+
+obj/

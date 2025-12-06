@@ -42,8 +42,7 @@
 
 ### Extra Credit
 
-- **Responsibilities**: [Description]
-- **Assigned to**: Brendan Boedy, Alexander Schneier
+NA
 
 ## File Listing
 
@@ -64,41 +63,21 @@ filesys/
 
 ## How to Compile & Execute
 
-### Requirements
-
-- **Compiler**: e.g., `gcc` for C/C++, `rustc` for Rust.
-- **Dependencies**: List any libraries or frameworks necessary (rust only).
-
 ### Compilation
 
-For a C/C++ example:
-
 ```bash
+make clean
 make
 ```
-
-This will build the executable in ...
 
 ### Execution
 
 ```bash
-make run
+make clean
+make
+./bin/filesys fat32.img
 ```
 
-This will run the program ...
-
-## Bugs
-
-- **Bug 1**: calling creat with an existing file name was allowed. Fixed using strcasecmp.
-- **Bug 2**: This is bug 2.
-- **Bug 3**: This is bug 3.
-
-## Extra Credit
-
-- **Extra Credit 1**: [Extra Credit Option]
-- **Extra Credit 2**: [Extra Credit Option]
-- **Extra Credit 3**: [Extra Credit Option]
-
-## Considerations
+make sure you have the `fat32.img` file
 
 [Description]

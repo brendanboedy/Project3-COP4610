@@ -1,6 +1,6 @@
-
 #include "navigate.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +14,7 @@ void change_dir(fat_state* state, char* dest_dir) {
         return;
     }
 
-    short_dir_entry* entry = find_entry(state, dest_dir);
+    short_dir_entry* entry = find_entry(state, dest_dir, NULL, NULL);
 
     if (entry == NULL) {
         printf("No file or directory %s found", dest_dir);
@@ -25,6 +25,10 @@ void change_dir(fat_state* state, char* dest_dir) {
         printf("%s is not a directory", dest_dir);
         free(entry);
         return;
+    }
+
+    for (int i = 0; i < strlen(dest_dir) - 1 || dest_dir[i] != '\0'; i++) {
+        dest_dir[i] = toupper((unsigned char)dest_dir[i]);
     }
 
     FAT32_Info* config = &state->img_config;

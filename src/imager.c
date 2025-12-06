@@ -12,7 +12,8 @@
 
 #include "read.h"
 
-short_dir_entry* find_entry(fat_state* state, char* target) {
+short_dir_entry* find_entry(fat_state* state, const char* target, uint32_t* out_sector,
+                            uint32_t* out_offset) {
     FAT32_Info* config = &state->img_config;
     const uint32_t MAX_ENTRIES = config->bytes_per_sector / sizeof(short_dir_entry);
 
@@ -43,6 +44,12 @@ short_dir_entry* find_entry(fat_state* state, char* target) {
                 if (strcasecmp(fname_buff, target) == 0) {
                     short_dir_entry* result = malloc(sizeof(short_dir_entry));
                     memcpy(result, entry, sizeof(short_dir_entry));
+
+                    if (out_sector) *out_sector = sector_idx;
+                    if (out_offset)
+                        *out_offset = (long)sector_byte_offset(sector_idx, config) +
+                                      (long)j * sizeof(short_dir_entry);
+
                     free(buffer);
                     return result;
                 }
@@ -199,4 +206,27 @@ void translate_filename(const uint8_t* filename, char* output_buffer) {
 
 int is_dir(const short_dir_entry* entry) {
     return (entry->attributes & ATTR_DIRECTORY) == ATTR_DIRECTORY;
+}
+
+fat_file* get_open_file(const char* filename, file_lst* files, fat_state* state) {
+    char* full_path = malloc(strlen(state->working_dir) + strlen(filename) + 1);
+    if (!full_path) {
+        printf("Error: Memory allocation failed\n");
+        return NULL;
+    }
+    strcpy(full_path, state->working_dir);
+    strcat(full_path, filename);
+
+    fat_file* file = NULL;
+    for (int i = 0; i < files->file_idx; ++i) {
+        if (!files->files[i].open) {
+            continue;
+        }
+        if (strcasecmp(full_path, files->files[i].full_path) == 0) {
+            file = &files->files[i];
+            break;
+        }
+    }
+    free(full_path);
+    return file;
 }

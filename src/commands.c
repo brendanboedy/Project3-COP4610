@@ -6,12 +6,12 @@
 #include <string.h>
 
 #include "create.h"
+#include "delete.h"
 #include "imager.h"
 #include "lexer.h"
 #include "navigate.h"
 #include "read.h"
 #include "update.h"
-#include "delete.h"
 
 void handle_command(fat_state* state, tokenlist* tokens) {
     if (tokens->size == 0) return;
@@ -45,7 +45,7 @@ void handle_command(fat_state* state, tokenlist* tokens) {
         if (tokens->size != 2) {
             printf("Usage: close [FILENAME]\n");
         } else {
-            close_file(tokens->items[1], state->openned_files);
+            close_file(tokens->items[1], state->openned_files, state);
         }
     } else if (strcmp(cmd, "open") == 0) {
         if (tokens->size != 3) {
@@ -54,11 +54,6 @@ void handle_command(fat_state* state, tokenlist* tokens) {
         }
         char* fname = tokens->items[1];
         char* flags = tokens->items[2];
-
-        if (is_file_open(state->openned_files, fname)) {
-            printf("Error: File '%s' is already open.\n", fname);
-            return;
-        }
 
         fat_file* f = open_file(fname, flags, state);
         if (f == NULL) {
@@ -74,7 +69,7 @@ void handle_command(fat_state* state, tokenlist* tokens) {
         } else {
             char* fname = tokens->items[1];
             int offset = atoi(tokens->items[2]);  // Convert string to int
-            lseek(fname, offset, state->openned_files);
+            lseek(fname, offset, state->openned_files, state);
         }
     } else if (strcmp(cmd, "read") == 0) {
         if (tokens->size != 3) {
@@ -84,47 +79,77 @@ void handle_command(fat_state* state, tokenlist* tokens) {
             int size = atoi(tokens->items[2]);  // Convert string to int
             read_n_bytes(fname, size, state->openned_files, state);
         }
-    }else if (strcmp(cmd, "write") == 0) {
+    } else if (strcmp(cmd, "write") == 0) {
         if (tokens->size < 3) {
             printf("Usage: write [FILENAME] \"STRING\"\n");
-        }
-        else {
-            char *fname = tokens->items[1];
-            char *start = strchr(tokens->items[2], '\"');
-            char *end = strrchr(tokens->items[tokens->size - 1], '\"');
-            if (start && end && end > start) {
-                size_t len = end - start - 1;
-                char *text = malloc(len + 1);
-                strncpy(text, start + 1, len);
-                text[len] = '\0';
-                write_file(fname, text, state->openned_files, state);
-                free(text);
-            } 
-            else {
+        } else {
+            char* fname = tokens->items[1];
+            char* start = strchr(tokens->items[2], '\"');
+            char* end = strrchr(tokens->items[tokens->size - 1], '\"');
+            if (start == NULL || end == NULL || end == start) {
                 printf("write: string must be in quotes\n");
+            } else {
+                char* content = tokens_to_str(tokens, 2);
+                write_file(fname, content, state->openned_files, state);
+
+                free(content);
             }
         }
-    }else if (strcmp(cmd, "mv") == 0) {
+    } else if (strcmp(cmd, "mv") == 0) {
         if (tokens->size != 3) {
             printf("Usage: mv [OLDNAME] [NEWNAME]\n");
         } else {
             move_entry(state, tokens->items[1], tokens->items[2]);
         }
-    }else if (strcmp(cmd, "rm") == 0) {
+    } else if (strcmp(cmd, "rm") == 0) {
         if (tokens->size != 2) {
             printf("Usage: rm [FILENAME]\n");
         } else {
             remove_file(state, tokens->items[1]);
         }
-    }else if (strcmp(cmd, "rmdir") == 0) {
+    } else if (strcmp(cmd, "rmdir") == 0) {
         if (tokens->size != 2) {
             printf("Usage: rmdir [DIRNAME]\n");
         } else {
             remove_dir(state, tokens->items[1]);
         }
-    }else {
+    } else {
         printf("Unknown command: %s\n", tokens->items[0]);
     }
+}
+
+/**
+ * Assumes wrapped in quotation marks and skips them
+*/
+char* tokens_to_str(tokenlist* tokens, int start_idx) {
+    size_t len = 0;
+    for (int i = start_idx; i < tokens->size; ++i) {
+        len += strlen(tokens->items[i]);
+    }
+    len += tokens->size + 1;  // adds space for spaces, '\0', and an extra one for peace of mind
+
+    char* result = malloc(sizeof(char) * len);
+    size_t result_idx = 0;
+
+    for (int i = start_idx; i < tokens->size; ++i) {
+        char* word = tokens->items[i];
+        if (i == start_idx) {
+            word += 1;
+        }
+
+        strcpy(result + result_idx, word);
+
+        result_idx += strlen(tokens->items[i]) - (i == start_idx ? 1 : 0);
+
+        if (i < tokens->size - 1) {
+            strcpy(result + result_idx, " ");
+            result_idx += 1;
+        }
+    }
+
+    result[result_idx - 1] = '\0';  // minus one cause quotation marks
+
+    return result;
 }
 
 void print_info(const FAT32_Info* img_config) {

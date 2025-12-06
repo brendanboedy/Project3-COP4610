@@ -65,6 +65,9 @@ typedef struct {
     char* filename;  // NOT fat filename but human translated
 
     short_dir_entry* entry;
+
+    uint32_t dir_entry_sector;
+    uint32_t dir_entry_offset;
 } fat_file;
 
 typedef struct {
@@ -91,7 +94,8 @@ fat_state* mount_image(const char* filename);
  *
  * IMPORTANT: Make sure you use this whenever needed. Very useful.
 */
-short_dir_entry* find_entry(fat_state* state, char* target);
+short_dir_entry* find_entry(fat_state* state, const char* target, uint32_t* out_sector,
+                            uint32_t* out_offset);
 
 uint32_t first_cluster_of_entry(short_dir_entry* dir_entry);
 uint32_t first_sector_of_cluster(uint32_t cluster_idx, const FAT32_Info* info);
@@ -113,3 +117,5 @@ int is_long_filename(const short_dir_entry* entry);
 int is_dir(const short_dir_entry* entry);
 
 void translate_filename(const uint8_t* filename, char* output_buffer);
+
+fat_file* get_open_file(const char* filename, file_lst* files, fat_state* state);

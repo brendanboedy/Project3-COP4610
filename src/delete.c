@@ -8,9 +8,8 @@
 #include <strings.h>
 
 #include "imager.h"
-#include "read.h" 
+#include "read.h"
 
-//-------------------- local helpers --------------------
 //Write FAT entry for given cluster
 static void set_fat_entry(fat_state *state, uint32_t cluster, uint32_t value) {
     FAT32_Info *cfg = &state->img_config;
@@ -76,7 +75,7 @@ static int mark_entry_deleted(fat_state *state, const char *name) {
                     entry->filename[0] = DELETED_ENTRY;
 
                     long pos = (long)sector_byte_offset(sector_idx, cfg) +
-                        (long)i * (long)sizeof(short_dir_entry);
+                               (long)i * (long)sizeof(short_dir_entry);
                     fseek(state->image, pos, SEEK_SET);
                     fwrite(entry, sizeof(short_dir_entry), 1, state->image);
                     fflush(state->image);
@@ -159,8 +158,6 @@ static int has_open_files_in_dir(fat_state *state, const char *dirname) {
     return 0;
 }
 
-// -------------------- main methods --------------------
-//remove file
 void remove_file(fat_state *state, const char *filename) {
     if (!filename || filename[0] == '\0') {
         printf("rm: missing operand\n");
@@ -170,33 +167,12 @@ void remove_file(fat_state *state, const char *filename) {
         printf("rm: cannot remove special entry '%s'\n", filename);
         return;
     }
-    //Build the absolute path
-    char *full_path = malloc(strlen(state->working_dir) + strlen(filename) + 1);
-    if (!full_path) {
-        printf("rm: memory allocation failed\n");
-        return;
+    fat_file *openned_file = get_open_file(filename, state->openned_files, state);
+    if (openned_file != NULL) {
+        printf("rm: cannot remove '%s': file is open\n", filename);
     }
-    strcpy(full_path, state->working_dir);
-    strcat(full_path, filename);
 
-    file_lst *open_files = state->openned_files;
-    if (open_files) {
-        for (int i = 0; i < open_files->file_idx; ++i) {
-            fat_file *f = &open_files->files[i];
-            if (!f->open || !f->full_path) {
-                continue;
-            }
-            //Compare full path strings
-            if (strcmp(f->full_path, full_path) == 0) {
-                printf("rm: cannot remove '%s': file is open\n", filename);
-                free(full_path);
-                return;
-            }
-        }
-    }
-    free(full_path);
-
-    short_dir_entry *entry = find_entry(state, (char *)filename);
+    short_dir_entry *entry = find_entry(state, (char *)filename, NULL, NULL);
     if (!entry) {
         printf("rm: cannot remove '%s': No such file\n", filename);
         return;
@@ -228,7 +204,7 @@ void remove_dir(fat_state *state, const char *dirname) {
         printf("rmdir: cannot remove special directory '%s'\n", dirname);
         return;
     }
-    short_dir_entry *entry = find_entry(state, (char *)dirname);
+    short_dir_entry *entry = find_entry(state, (char *)dirname, NULL, NULL);
     if (!entry) {
         printf("rmdir: failed to remove '%s': No such file or directory\n", dirname);
         return;

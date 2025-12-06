@@ -25,4 +25,13 @@ read F094 40
 close F089
 lseek F094 30
 read HELLO 4
+close F094
 
+
+open HELLO -rw
+read HELLO 50
+lseek HELLO 0
+write HELO "this is some great text"
+lsof
+lseek HELLO 0
+read HELLO 128

@@ -9,7 +9,14 @@
 #include "imager.h"
 
 fat_file* open_file(char* target, char* flags, fat_state* state) {
-    short_dir_entry* file_entry = find_entry(state, target);
+    fat_file* openned_file = get_open_file(target, state->openned_files, state);
+    if (openned_file != NULL) {
+        printf("File %s is already open.", target);
+        return NULL;
+    }
+
+    uint32_t sector, offset;
+    short_dir_entry* file_entry = find_entry(state, target, &sector, &offset);
 
     if (file_entry == NULL) {
         printf("No such file found %s", target);
@@ -53,27 +60,19 @@ fat_file* open_file(char* target, char* flags, fat_state* state) {
     f->write = write;
     f->offset = 0;
     f->open = 1;
+    f->dir_entry_sector = sector;
+    f->dir_entry_offset = offset;
 
     return f;
 }
 
 void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* state) {
-    fat_file* files = file_lst->files;
     FAT32_Info* conf = &state->img_config;
-    fat_file* file = NULL;
-    for (int i = 0; i < file_lst->file_idx; ++i) {
-        if (!files[i].open) {
-            continue;
-        }
-        if (strcmp(filename, files[i].filename) != 0) {
-            continue;
-        }
-        file = &files[i];
-        break;
-    }
+    fat_file* file = get_open_file(filename, file_lst, state);
 
     if (file == NULL) {
-        printf("No openned file found with filename %s", filename);
+        printf("No file at %s. Make sure you are in the directory containing the openned file.",
+               filename);
         return;
     }
 
@@ -82,8 +81,10 @@ void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* 
     }
 
     uint32_t bytes_remaining = size;
-    if (file->offset + size > file->entry->file_size) {
-        bytes_remaining = (file->offset + size) - file->entry->file_size;
+    if (file->offset >= file->entry->file_size) {
+        bytes_remaining = 0;
+    } else if (file->offset + size > file->entry->file_size) {
+        bytes_remaining = file->entry->file_size - file->offset;
     }
 
     uint32_t offset = file->offset;
@@ -91,18 +92,18 @@ void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* 
     uint32_t cluster_idx = cluster_from_entry_offset(file->entry, offset, state);
     uint32_t sector_idx = sector_from_entry_offset(cluster_idx, offset, state);
     uint32_t start_byte = offset % state->img_config.bytes_per_sector;
-    uint32_t remaining_sectors =
-        conf->sectors_per_cluster - (sector_idx % conf->sectors_per_cluster);
 
-    uint8_t* buffer = malloc(sizeof(uint32_t) * conf->bytes_per_sector);
+    uint32_t offset_in_cluster = offset % (conf->bytes_per_sector * conf->sectors_per_cluster);
+    uint32_t sector_offset_in_cluster = offset_in_cluster / conf->bytes_per_sector;
+    uint32_t remaining_sectors = conf->sectors_per_cluster - sector_offset_in_cluster;
+
+    uint8_t* buffer = malloc(conf->bytes_per_sector);
     while (bytes_remaining > 0 && cluster_idx < END_CLUSTER_MIN && cluster_idx != 0) {
         for (uint32_t i = 0; i < remaining_sectors && bytes_remaining > 0; ++i) {
             read_sector(buffer, sector_idx + i, state);
 
-            uint32_t bytes_to_print = conf->bytes_per_sector;
-            if (bytes_remaining < conf->bytes_per_sector) {
-                bytes_to_print = bytes_remaining;
-            }
+            uint32_t available = conf->bytes_per_sector - start_byte;
+            uint32_t bytes_to_print = (bytes_remaining < available) ? bytes_remaining : available;
 
             fwrite(buffer + start_byte, 1, bytes_to_print, stdout);
 
@@ -114,6 +115,7 @@ void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* 
         sector_idx = first_sector_of_cluster(cluster_idx, &state->img_config);
         remaining_sectors = state->img_config.sectors_per_cluster;
     }
+
     free(buffer);
 }
 
@@ -139,50 +141,31 @@ void list_open_files(file_lst* files) {
         printed_idx += 1;
     }
 }
-void close_file(char* filename, file_lst* open_files) {
-    fat_file* files = open_files->files;
-    fat_file* file = NULL;
-    for (int i = 0; i < open_files->file_idx; ++i) {
-        if (files[i].filename == NULL) {
-            continue;
-        }
-        if (strcmp(filename, files[i].filename) != 0) {
-            continue;
-        }
-        if (!files[i].open) {
-            printf("File %s is already closed.", filename);
-            return;
-        }
+void close_file(char* filename, file_lst* open_files, fat_state* state) {
+    fat_file* file = get_open_file(filename, open_files, state);
 
-        file = &files[i];
-        free(file->filename);
-        free(file->full_path);
-        free(file->entry);
-        file->filename = NULL;
-        file->full_path = NULL;
-
-        file->open = 0;
-        file->entry = NULL;
-
+    if (file == NULL) {
+        printf("File %s not found in open files", filename);
         return;
     }
 
-    printf("File %s not found in open files", filename);
+    if (!file->open) {
+        printf("File %s is already closed.", filename);
+        return;
+    }
+
+    free(file->filename);
+    free(file->full_path);
+    free(file->entry);
+    file->filename = NULL;
+    file->full_path = NULL;
+
+    file->open = 0;
+    file->entry = NULL;
 }
 
-void lseek(char* filename, uint32_t offset, file_lst* file_lst) {
-    fat_file* files = file_lst->files;
-    fat_file* target_file = NULL;
-    for (int i = 0; i < file_lst->file_idx; ++i) {
-        if (files[i].filename == NULL) {
-            continue;
-        }
-        if (strcmp(filename, files[i].filename) != 0) {
-            continue;
-        }
-        target_file = &files[i];
-        break;
-    }
+void lseek(char* filename, uint32_t offset, file_lst* file_lst, fat_state* state) {
+    fat_file* target_file = get_open_file(filename, file_lst, state);
 
     if (target_file == NULL) {
         printf("No openned file found with filename %s", filename);
@@ -235,17 +218,4 @@ void add_file_to_lst(fat_file* file, file_lst* files) {
 
     files->files[files->file_idx] = *file;
     files->file_idx++;
-}
-
-int is_file_open(file_lst* list, char* filename) {
-    for (int i = 0; i < list->file_idx; ++i) {
-        if (!list->files[i].open) {
-            continue;
-        }
-        if (strcmp(list->files[i].filename, filename) != 0) {
-            continue;
-        }
-        return 1;
-    }
-    return 0;
 }

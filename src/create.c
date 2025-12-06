@@ -9,9 +9,8 @@
 
 #include "imager.h"
 
-/* --------- small FAT / directory helpers (local to this file) --------- */
 //Build a short name
-static void build_short_name(const char *input, uint8_t dest[11]) {
+void build_short_name(const char *input, uint8_t dest[11]) {
     memset(dest, ' ', 11);
     size_t len = strlen(input);
     if (len > 8) {
@@ -23,9 +22,9 @@ static void build_short_name(const char *input, uint8_t dest[11]) {
 }
 
 //Write a 32-bit value into the FAT entry for the given cluster
-static void set_fat_entry(fat_state *state, uint32_t cluster, uint32_t value) {
+void set_fat_entry(fat_state *state, uint32_t cluster, uint32_t value) {
     FAT32_Info *cfg = &state->img_config;
-    uint32_t fat_offset_bytes = cluster * 4; //4 bytes per FAT32 entry
+    uint32_t fat_offset_bytes = cluster * 4;  //4 bytes per FAT32 entry
     uint32_t sector = cfg->first_fat_sector + (fat_offset_bytes / cfg->bytes_per_sector);
     uint32_t offset_in_sector = fat_offset_bytes % cfg->bytes_per_sector;
     long pos = (long)sector * cfg->bytes_per_sector + offset_in_sector;
@@ -33,7 +32,7 @@ static void set_fat_entry(fat_state *state, uint32_t cluster, uint32_t value) {
     fwrite(&value, sizeof(uint32_t), 1, state->image);
 }
 
-//Search for free FAT entry 
+//Search for free FAT entry
 //Marks  chosen cluster as EOC and returns its index via out_cluster.
 int allocate_free_cluster(fat_state *state, uint32_t *out_cluster) {
     FAT32_Info *cfg = &state->img_config;
@@ -105,9 +104,8 @@ static int append_entry_to_cwd(fat_state *state, const short_dir_entry *new_entr
                 short_dir_entry *entry = &entries[j];
                 if (is_final_entry(entry) || is_deleted_entry(entry)) {
                     //Found free slot in this sector/cluster
-                    long sector_pos =
-                        (long)sector_byte_offset(sector_idx, cfg) +
-                        (long)j * (long)sizeof(short_dir_entry);
+                    long sector_pos = (long)sector_byte_offset(sector_idx, cfg) +
+                                      (long)j * (long)sizeof(short_dir_entry);
 
                     fseek(state->image, sector_pos, SEEK_SET);
                     fwrite(new_entry, sizeof(short_dir_entry), 1, state->image);
@@ -118,9 +116,8 @@ static int append_entry_to_cwd(fat_state *state, const short_dir_entry *new_entr
                         memset(&end_entry, 0, sizeof(short_dir_entry));
                         end_entry.filename[0] = END_OF_ENTRIES;
 
-                        long next_pos =
-                            (long)sector_byte_offset(sector_idx, cfg) +
-                            (long)(j + 1) * (long)sizeof(short_dir_entry);
+                        long next_pos = (long)sector_byte_offset(sector_idx, cfg) +
+                                        (long)(j + 1) * (long)sizeof(short_dir_entry);
                         fseek(state->image, next_pos, SEEK_SET);
                         fwrite(&end_entry, sizeof(short_dir_entry), 1, state->image);
                     }
@@ -212,7 +209,6 @@ static void init_dot_entries(fat_state *state, uint32_t new_dir_cluster, uint32_
     fwrite(&end_entry, sizeof(short_dir_entry), 1, state->image);
 }
 
-/* --------- public Part 3 entry points --------- */
 void make_dir(fat_state *state, const char *dirname) {
     if (dirname == NULL || dirname[0] == '\0') {
         printf("mkdir: missing operand\n");
@@ -225,7 +221,7 @@ void make_dir(fat_state *state, const char *dirname) {
     }
 
     //Check if an entry already exists with this name
-    short_dir_entry *existing = find_entry(state, (char *)dirname);
+    short_dir_entry *existing = find_entry(state, (char *)dirname, NULL, NULL);
     if (existing != NULL) {
         free(existing);
         printf("mkdir: cannot create '%s': entry already exists\n", dirname);
@@ -271,7 +267,7 @@ void create_ef(fat_state *state, const char *filename) {
     }
 
     //Check if an entry already exists with this name
-    short_dir_entry *existing = find_entry(state, (char *)filename);
+    short_dir_entry *existing = find_entry(state, (char *)filename, NULL, NULL);
     if (existing != NULL) {
         free(existing);
         printf("creat: cannot create '%s': entry already exists\n", filename);

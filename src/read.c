@@ -78,6 +78,12 @@ void read_n_bytes(char* filename, uint32_t size, file_lst* file_lst, fat_state* 
 
     if (!file->open) {
         printf("File %s is not open", filename);
+        return;
+    }
+
+    if (!file->read) {
+        printf("File %s is not open for reading", filename);
+        return;
     }
 
     uint32_t bytes_remaining = size;

@@ -47,18 +47,29 @@ NA
 ## File Listing
 
 ```
-filesys/
-│
-├── src/
-│ ├── lexer.c
-│ └── ...
-│
-├── include/
-│ └── lexer.h
-│ └── ...
-│
+.
+├── include
+│   ├── commands.h
+│   ├── create.h
+│   ├── delete.h
+│   ├── fatter.h
+│   ├── imager.h
+│   ├── lexer.h
+│   ├── navigate.h
+│   ├── read.h
+│   └── update.h
+├── Makefile
 ├── README.md
-└── Makefile
+└── src
+    ├── commands.c
+    ├── create.c
+    ├── delete.c
+    ├── fatter.c
+    ├── imager.c
+    ├── lexer.c
+    ├── navigate.c
+    ├── read.c
+    └── update.c
 ```
 
 ## How to Compile & Execute
